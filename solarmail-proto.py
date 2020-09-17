@@ -164,11 +164,36 @@ def save_result(result, asset):
         use.to_excel('save_excel/{}.xlsx'.format(file_name), encoding='utf-8', index=False)
 
 
+def get_user():
+    engine, con = solarmail_connection()
+    if con.invalidated:
+        con.connect()
+    else:
+        user_df = pd.read_sql('select * from user', con, index_col=None)
+    con.close()
+    engine.dispose()
+    return user_df
+
+
+def send_xlsx(date, asset):
+    user_df = get_user()
+    for i in range(len(asset)):
+        address = user_df[user_df.id == asset.iloc[i, ].user_id].email.item()
+        asset_name = asset.iloc[i, ].assetname
+        attachment_file = "save_excel/{}.xlsx".format(asset_name)
+        subject_title = "발전량 예측 결과 메일"
+        content_line = date + "의 예측 결과"
+        sendemail.send_mail(addr=address, subj_layout=subject_title, cont_layout=content_line, attachment=attachment_file)
+    print("메일 전송 완료!")
+
+
 if __name__ == "__main__":
 
     pred_date = input_data()
     result_dict, asset_df = total_prediction(pred_date)
     save_result(result_dict, asset_df)
+
+    send_xlsx(pred_date, asset_df)
 
 
     """
