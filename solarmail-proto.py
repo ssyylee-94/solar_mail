@@ -47,49 +47,23 @@ def get_pysolar(date, region):
     return pysolar_df
 
 
-def get_kma(date, region):
+def get_weather(date, region):
 
     engine, con = kma_connection()
 
     if con.invalidated:
         con.connect()
     else:
-        temp = pd.read_sql('select * from KMA_동네예보_3시간기온 WHERE city = "{}" AND DATE(Target) = "{}"'.format(region, date), con, index_col=None)
-        temp.drop_duplicates(subset='Target', keep='last', inplace=True)
-        temp = temp.reset_index(drop=True)
-        temp = temp[['Target', 'Value']]
-        temp.rename(columns={'Value': 'temperature'}, inplace=True)
+        weather = pd.read_sql('select Target, T3H, REH, WSD, SKY from village_fcst WHERE Region = "{}" AND DATE(Target) = "{}"'.format(region, date),
+                              con, index_col=None)
+        weather.drop_duplicates(subset='Target', keep='last', inplace=True)
 
-        humid = pd.read_sql('select * from KMA_동네예보_습도 WHERE city = "{}" AND DATE(Target) = "{}"'.format(region, date), con, index_col=None)
-        humid.drop_duplicates(subset='Target', keep='last', inplace=True)
-        humid = humid.reset_index(drop=True)
-        humid = humid[['Target', 'Value']]
-        humid.rename(columns={'Value': 'humidity'}, inplace=True)
-
-        wind = pd.read_sql('select * from KMA_동네예보_풍속 WHERE city = "{}" AND DATE(Target) = "{}"'.format(region, date), con, index_col=None)
-        wind.drop_duplicates(subset='Target', keep='last', inplace=True)
-        wind = wind.reset_index(drop=True)
-        wind = wind[['Target', 'Value']]
-        wind.rename(columns={'Value': 'wind'}, inplace=True)
-
-        sky = pd.read_sql('select * from KMA_동네예보_하늘상태 WHERE city = "{}" AND DATE(Target) = "{}"'.format(region, date), con, index_col=None)
-        sky.drop_duplicates(subset='Target', keep='last', inplace=True)
-        sky = sky.reset_index(drop=True)
-        sky = sky[['Target', 'Value']]
-        sky.rename(columns={'Value': 'sky'}, inplace=True)
+        weather = weather.reset_index(drop=True)
+        weather.rename(columns={'T3H': 'temperature', 'REH': 'humidity', 'WSD': 'wind', 'SKY': 'sky'}, inplace=True)
+        # T3H: 기온, REH: 습도,  WSD: 풍속, SKY: 운량 !~4
 
     con.close()
     engine.dispose()
-
-    return temp, humid, wind, sky
-
-
-def get_weather(date, region):
-    temp, humid, wind, sky = get_kma(date, region)
-
-    weather = pd.merge(temp, humid, on='Target', how='outer')
-    weather = pd.merge(weather, wind, on='Target', how='outer')
-    weather = pd.merge(weather, sky, on='Target', how='outer')
 
     return weather
 
