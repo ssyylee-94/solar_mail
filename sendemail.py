@@ -4,12 +4,11 @@ import smtplib
 import datetime
 
 
-# SMTP 접속을 위한 서버, 계정 설정
-SMTP_SERVER = "server.com"
-SMTP_PORT = 000 #port_numbet
+SMTP_SERVER = "ssss.gmail.com"
+SMTP_PORT = 46
 # 보내는 메일 계정
-SMTP_USER = "address@gmail.com"  #"보내는 사람 메일 주소"
-SMTP_PASSWORD = "password"  #"비밀번호"
+SMTP_USER = "who@gmail.com"  #"보내는 사람 메일 주소"
+SMTP_PASSWORD = "password$"  #"비밀번호"
 
 
 # 이메일 유효성 검사 함수

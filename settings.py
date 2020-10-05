@@ -1,10 +1,9 @@
 # ----------- mysql ------------
-user_id = "id"  # id
-pw = "pw"  # pass word
-url = "aws-rds"  # end point
-
-name1 = "solarmail_test"  # DB name
-name2 = "kma_db"  # DB name
+user_id = "loadforecast"
+pw = "pw)"
+url = "link.rds.amazonaws.com"
+name1 = "solarmail_db"
+name2 = "kma_db"
 
 region_dict = {'seoul': '서울',
                'busan': '부산',

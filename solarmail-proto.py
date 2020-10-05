@@ -126,18 +126,6 @@ def total_prediction(date):
     return result, asset
 
 
-def save_result(result, asset):
-
-    for i in range(len(asset)):
-        use = result[asset.iloc[i, ].region]
-        use['kWh'] = use['tGen'] * asset.iloc[i, ].size
-        use['assetname'] = asset.iloc[i, ].assetname
-
-        file_name = str(asset.iloc[i, ].assetname)
-
-        use.to_excel('save_excel/{}.xlsx'.format(file_name), encoding='utf-8', index=False)
-
-
 def get_user():
     engine, con = solarmail_connection()
     if con.invalidated:
@@ -149,40 +137,59 @@ def get_user():
     return user_df
 
 
-def send_xlsx(date, asset):
+def save_result(result, asset):
     user_df = get_user()
-    for i in range(len(asset)):
-        address = user_df[user_df.id == asset.iloc[i, ].user_id].email.item()
-        asset_name = asset.iloc[i, ].assetname
-        attachment_file = "save_excel/{}.xlsx".format(asset_name)
-        subject_title = "발전량 예측 결과 메일"
-        content_line = date + "의 예측 결과"
-        sendemail.send_mail(addr=address, subj_layout=subject_title, cont_layout=content_line, attachment=attachment_file)
-    print("메일 전송 완료!")
+
+    for i in range(len(user_df)):
+
+        _id_title = 'user_' + str(user_df.iloc[i,].id)
+
+        _asset = asset[asset.user_id == user_df.iloc[i,].id]
+        _asset = _asset.reset_index(drop=True)
+
+        for j in range(len(_asset)):
+            use = result[_asset.iloc[j,].region]
+            use['kWh'] = use['tGen'] * _asset.iloc[j,]['size']
+            use = use[['tGen', 'kWh']]
+
+            if j == 0:
+                with pd.ExcelWriter('save_excel/{}.xlsx'.format(_id_title)) as writer:
+                    use.to_excel(writer, sheet_name=str(_asset.iloc[j,].assetname), encoding='utf-8', index=False)
+            else:
+                with pd.ExcelWriter('save_excel/{}.xlsx'.format(_id_title), mode='a') as writer:
+                    use.to_excel(writer, sheet_name=str(_asset.iloc[j,].assetname), encoding='utf-8', index=False)
+    return user_df
+
+
+def send_xlsx(date, user_df):
+
+    for i in range(len(user_df)):
+        address = user_df.iloc[i, ].email
+
+        try:
+            attachment_file = "save_excel/user_{}.xlsx".format(user_df.iloc[i,].id)
+            subject_title = "발전량 예측 결과 메일"
+            content_line = date + "의 예측 결과"
+            sendemail.send_mail(addr=address, subj_layout=subject_title, cont_layout=content_line, attachment=attachment_file)
+        except FileNotFoundError as e:
+            pass
+
+    # print("메일 전송 완료!!!!!!!!!!")
+
+
+def solarmail_func():
+
+    pred_date = input_data()
+    result_dict, asset_df = total_prediction(pred_date)
+    user_data = save_result(result_dict, asset_df)
+
+    send_xlsx(pred_date, user_data)
 
 
 if __name__ == "__main__":
 
     pred_date = input_data()
     result_dict, asset_df = total_prediction(pred_date)
-    save_result(result_dict, asset_df)
+    user_data = save_result(result_dict, asset_df)
 
-    send_xlsx(pred_date, asset_df)
-
-
-    """
-    user_df = pd.read_sql("select * from user", con, index_col=None)  # 사용자 정보 로드, id/ username/ email
-    asset_df = pd.read_sql("select * from asset", con, index_col=None)  # region/ address/ size(MW)/resource/ user_id
-    gps_df = pd.read_sql("select * from gps", con, index_col=None)  # 일기예보 지역별 gps 좌표
-    weather_df = pd.read_sql("select * from weather", con, index_col=None)  # 기상청 예보
-
-    result_df = pd.DataFrame([])
-
-    altitude, radiation
-
-    input_df = kma_df[['tDeal', 'tDoY', 'tYear', 'altitude', 'radiation', 'temperature', 'humidity', 'wind', 'sky']]
-
-    predictions = model.predict(input_df)
-
-    predictions = model.predict()
-    """
+    send_xlsx(pred_date, user_data)
